@@ -4,6 +4,10 @@ const { connect } = require("net")
 const { parse } = require("url")
 const { join } = require("path")
 
+const querystring = require("querystring")
+const axios = require("axios")
+const { default: getStream } = require("get-stream")
+
 const socks = require("node-socksv5-dns-looukp")
 
 const cacher = require("./cacher")
@@ -35,20 +39,60 @@ class Proxy {
             Logger.send(logSource, "help", "connected")
 
             if (method !== "GET" || (!KC_PATHS.some(path => url.includes(path))) || url.includes(".php")) {
-                if (url.includes("/kcs2/index.php"))
-                    Logger.send(logSource, "help", "indexHit")
+                const targetBaseUrl = "https://" + config.getConfig().serverIP
+                const targetFullUrl = `${targetBaseUrl}${req.url}`
 
-                if (req.headers.host == `127.0.0.1:${this.config.port}` || req.headers.host == `${this.config.hostname}:${this.config.port}`
-                    || req.headers.host == "127.0.0.1" || req.headers.host == this.config.hostname)
-                    return res.end(500)
+                if (url.includes("/kcs2/index.php")) {
+                    Logger.send(logSource, "help", "indexHit")
+                }
+
+                // if (
+                //     req.headers.host == `127.0.0.1:${this.config.port}`
+                //     || req.headers.host == `${this.config.hostname}:${this.config.port}`
+                //     || req.headers.host == "127.0.0.1"
+                //     || req.headers.host == this.config.hostname
+                // ) {
+                //     return res.end(500)
+                // }
 
                 Logger.addStatAndSend("passthroughHTTP")
                 Logger.addStatAndSend("passthrough")
 
-                return this.proxy.web(req, res, {
-                    target: `http://${req.headers.host}/`,
-                    timeout: config.getConfig().timeout
+                // return this.proxy.web(req, res, {
+                //     target: `http://${req.headers.host}/`,
+                //     timeout: config.getConfig().timeout
+                // })
+
+                const headers = Object.keys(req.headers || {}).reduce((pv, cv) => ({ ...pv, ...{ [cv]: req.headers[cv] } }), {})
+                let body
+
+                delete headers.host
+                delete headers.origin
+
+                if (req.method === "POST") {
+                    const referer = new URL(headers.referer.substring(headers.referer.indexOf("/kcs2")), targetBaseUrl).href
+                    headers.referer = referer
+
+                    body = await getStream(req)
+                    if (headers["content-type"] === "application/json") {
+                        body = JSON.parse(body)
+                    } else if (headers["content-type"] === "application/x-www-form-urlencoded") {
+                        body = querystring.parse(body)
+                    }
+                }
+
+                const response = await axios.request({
+                    method: req.method,
+                    url: targetFullUrl,
+                    headers,
+                    data: body,
+                    responseType: "arraybuffer",
+                    validateStatus: () => true,
                 })
+
+                res.writeHead(response.status, response.headers.toJSON())
+                res.end(response.data)
+                return
             }
 
             Logger.addStatAndSend("totalHandled")
@@ -61,7 +105,9 @@ class Proxy {
             Logger.addStatAndSend("passthroughHTTPS")
             Logger.addStatAndSend("passthrough")
 
-            socket.on("error", (...a) => Logger.error(logSource, "Socket error", ...a))
+            socket.on("error", (...a) => {
+                Logger.error(logSource, "Socket error", ...a)
+            })
 
             const serverUrl = parse("https://" + req.url)
             const srvSocket = connect(serverUrl.port, serverUrl.hostname, () => {
@@ -72,8 +118,12 @@ class Proxy {
                 srvSocket.pipe(socket)
                 socket.pipe(srvSocket)
             })
-            srvSocket.on("error", (...a) => Logger.error(logSource, "Server socket error", ...a))
+
+            srvSocket.on("error", (...a) => {
+                Logger.error(logSource, "Server socket error", ...a)
+            })
         })
+
         this.server.on("error", async (...a) => {
             Logger.error(logSource, "Proxy server error", ...a)
             if (a[0].code === "EADDRINUSE") {
@@ -83,7 +133,10 @@ class Proxy {
                 }, 5000)
             }
         })
-        this.proxy.on("error", (error) => Logger.error(logSource, `Proxy error: ${error.code}: ${error.hostname}`))
+
+        this.proxy.on("error", (error) => {
+            Logger.error(logSource, `Proxy error: ${error.code}: ${error.hostname}`)
+        })
 
         // SOCKS5 support
         if (this.config.socks5Enabled) {

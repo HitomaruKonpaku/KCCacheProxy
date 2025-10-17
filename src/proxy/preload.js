@@ -9,7 +9,7 @@ const logSource = "kccp-preload"
 const { getConfig, getCacheLocation, preloader } = require("./config")
 preloader()
 
-const GADGET = "http://w00g.kancolle-server.com/"
+const GADGET = "https://w00g.kancolle-server.com/"
 let INCLUDE_RARE = false
 
 const SPECIAL_CG = [541, 571, 573, 576, 601, 1496]
@@ -32,7 +32,7 @@ const run = async (rare = false) => {
     if (!getConfig().serverIP) return
 
     const kcs_const = readFileSync(join(getCacheLocation(), "/gadget_html5/js/kcs_const.js")).toString() //* / await (await fetch(`${GADGET}gadget_html5/js/kcs_const.js`)).text()
-    SERVER = `http://${getConfig().serverIP}/` // kcs_const.split("\n").find(k => k.includes(`ConstServerInfo.World_${serverID} `)).match(/".*"/)[0].replace(/"/g, "")
+    SERVER = `https://${getConfig().serverIP}/` // kcs_const.split("\n").find(k => k.includes(`ConstServerInfo.World_${serverID} `)).match(/".*"/)[0].replace(/"/g, "")
     GAME_VERSION = kcs_const.split("\n").find(k => k.includes("VersionInfo.scriptVesion ")).match(/".*"/)[0].replace(/"/g, "")
 
     Logger.log(logSource, "Game version: " + GAME_VERSION)

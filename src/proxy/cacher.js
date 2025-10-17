@@ -91,8 +91,9 @@ const currentlyLoadingCache = {}
  * @param {Object} [headers] Headers to use in fetch
  */
 async function cache(cacheFile, file, url, version, lastmodified, headers = {}) {
-    if (currentlyLoadingCache[file])
+    if (currentlyLoadingCache[file]) {
         return await new Promise((resolve) => currentlyLoadingCache[file].push(resolve))
+    }
 
     currentlyLoadingCache[file] = []
     Logger.log(logSource, "Loading...", file)
@@ -103,7 +104,15 @@ async function cache(cacheFile, file, url, version, lastmodified, headers = {}) 
         return rep
     }
 
-    const options = { method: "GET", headers }
+    if (headers) {
+        delete headers.host
+        delete headers.referer
+    }
+
+    const options = {
+        method: "GET",
+        headers,
+    }
 
     // Request to only send full file if it has changed since last request
     if (lastmodified)
@@ -334,8 +343,10 @@ async function send(req, res, cacheFile, contents, file, cachedFile, forceCache 
 async function handleCaching(req, res, forceCache = false) {
     const { headers } = req
     let { url } = req
-    if (url.startsWith("/"))
-        url = `http://${headers.host}${url}`
+    if (url.startsWith("/")) {
+        const targetBaseUrl = "https://" + getConfig().serverIP
+        url = `${targetBaseUrl}${url}`
+    }
 
     const { file, cacheFile, version } = extractURL(url)
 
@@ -390,7 +401,7 @@ async function handleCaching(req, res, forceCache = false) {
 }
 
 async function getKCAVersion(host) {
-    const url = `http://${host}/kca/version.json`
+    const url = `https://${host}/kca/version.json`
     const { file, cacheFile } = extractURL(url)
 
     Logger.addStatAndSend("totalHandled")
