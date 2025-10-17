@@ -353,14 +353,14 @@ async function handleCaching(req, res, forceCache = false) {
     if (getConfig().bypassGadgetUpdateCheck)
         invalidatedMainVersion = true
 
-    if (file.startsWith("/kcs2/") && !file.startsWith("/kcs2/resources/worldselect") && getConfig().serverIP !== headers.host) {
-        if (!(headers.host == `127.0.0.1:${getConfig().port}` || headers.host == `${getConfig().hostname}:${getConfig().port}`
-            || headers.host == "127.0.0.1" || headers.host == getConfig().hostname)) {
-            getConfig().serverIP = headers.host
-            Logger.log(logSource, `Detected KC server IP ${getConfig().serverIP}`)
-            saveConfig()
-        }
-    }
+    // if (file.startsWith("/kcs2/") && !file.startsWith("/kcs2/resources/worldselect") && getConfig().serverIP !== headers.host) {
+    //     if (!(headers.host == `127.0.0.1:${getConfig().port}` || headers.host == `${getConfig().hostname}:${getConfig().port}`
+    //         || headers.host == "127.0.0.1" || headers.host == getConfig().hostname)) {
+    //         getConfig().serverIP = headers.host
+    //         Logger.log(logSource, `Detected KC server IP ${getConfig().serverIP}`)
+    //         saveConfig()
+    //     }
+    // }
 
     // Return cached if version matches
     const cachedFile = cached[file]
