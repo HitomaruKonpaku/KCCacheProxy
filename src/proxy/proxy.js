@@ -39,8 +39,8 @@ class Proxy {
             Logger.send(logSource, "help", "connected")
 
             if (method !== "GET" || (!KC_PATHS.some(path => url.includes(path))) || url.includes(".php")) {
-                const targetBaseUrl = "https://" + config.getConfig().serverIP
-                const targetFullUrl = `${targetBaseUrl}${req.url}`
+                const originHost = req.headers["x-kcp-host"] || config.getConfig().serverIP
+                const targetFullUrl = `https://${originHost}${req.url}`
 
                 if (url.includes("/kcs2/index.php")) {
                     Logger.send(logSource, "help", "indexHit")
@@ -70,7 +70,7 @@ class Proxy {
                 delete headers.origin
 
                 if (req.method === "POST") {
-                    const referer = new URL(headers.referer.substring(headers.referer.indexOf("/kcs2")), targetBaseUrl).href
+                    const referer = new URL(headers.referer.substring(headers.referer.indexOf("/kcs2")), "https://" + originHost).href
                     headers.referer = referer
 
                     body = await getStream(req)

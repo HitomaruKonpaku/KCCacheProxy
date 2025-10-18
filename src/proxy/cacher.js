@@ -344,8 +344,8 @@ async function handleCaching(req, res, forceCache = false) {
     const { headers } = req
     let { url } = req
     if (url.startsWith("/")) {
-        const targetBaseUrl = "https://" + getConfig().serverIP
-        url = `${targetBaseUrl}${url}`
+        const originHost = req.headers["x-kcp-host"] || getConfig().serverIP
+        url = `https://${originHost}${url}`
     }
 
     const { file, cacheFile, version } = extractURL(url)
