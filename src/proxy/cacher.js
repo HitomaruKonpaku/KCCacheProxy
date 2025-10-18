@@ -344,7 +344,7 @@ async function handleCaching(req, res, forceCache = false) {
     const { headers } = req
     let { url } = req
     if (url.startsWith("/")) {
-        const originHost = req.headers["x-kcp-host"] || getConfig().serverIP
+        const originHost = req.headers["x-kcp-host"] || req.headers["x-host"] || getConfig().serverIP
         url = `https://${originHost}${url}`
     }
 

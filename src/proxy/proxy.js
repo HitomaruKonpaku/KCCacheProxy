@@ -39,7 +39,7 @@ class Proxy {
             Logger.send(logSource, "help", "connected")
 
             if (method !== "GET" || (!KC_PATHS.some(path => url.includes(path))) || url.includes(".php")) {
-                const originHost = req.headers["x-kcp-host"] || config.getConfig().serverIP
+                const originHost = req.headers["x-kcp-host"] || req.headers["x-host"] || config.getConfig().serverIP
                 const targetFullUrl = `https://${originHost}${req.url}`
 
                 if (url.includes("/kcs2/index.php")) {
